@@ -2,15 +2,17 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Sphere, MeshDistortMaterial, Float, Capsule } from "@react-three/drei";
 import * as THREE from "three";
-import { motion } from "framer-motion";
-import { Biohazard, Skull, Activity, ShieldAlert } from "lucide-react";
+import { Activity } from "lucide-react";
 
-// Existing Store & Components
+// Store & Components
 import { useDashboardStore } from "./store/useDashboardStore";
 import BedCapacityChart from "./components/BedCapacityChart";
 import BloodLiquidityTable from "./components/BloodLiquidityTable";
 import AmcTracker from "./components/AmcTracker";
 import EmsDiversionMap from "./components/EmsDiversionMap";
+
+// IMPORT YOUR TERMINAL COMPONENT
+import TerminalLogin from "./components/TerminalLogin";
 
 // ==========================================
 // 3D MODULES: PATHOGENS & INTERACTION
@@ -19,8 +21,6 @@ import EmsDiversionMap from "./components/EmsDiversionMap";
 const PathogenPhysics = ({ children, startAngle = 0, speed = 1 }) => {
   const groupRef = useRef();
   const mouseVec = useMemo(() => new THREE.Vector3(), []);
-  
-  // Give each pathogen a randomized time offset so their breathing/bobbing isn't synced
   const timeOffset = useMemo(() => Math.random() * 100, []);
 
   useFrame((state, delta) => {
@@ -28,20 +28,14 @@ const PathogenPhysics = ({ children, startAngle = 0, speed = 1 }) => {
     const t = state.clock.getElapsedTime() + timeOffset;
 
     // 1. Sector-Locked Wandering
-    // Instead of orbiting endlessly, they swing back and forth around their starting angle.
-    // This mathematically prevents them from ever crossing into another pathogen's space.
     const currentAngle = startAngle + Math.sin(t * 0.3 * speed) * 0.35;
-
-    // Radii bounds to keep them visible but away from the center terminal
     const minRadius = 3.5;
     const maxRadius = 4.8;
-    const radiusWobble = (Math.sin(t * 0.4 * speed) + 1) / 2; // 0.0 to 1.0
+    const radiusWobble = (Math.sin(t * 0.4 * speed) + 1) / 2;
     const currentRadius = minRadius + radiusWobble * (maxRadius - minRadius);
-
-    // Subtle Z-depth floating
     const currentZ = Math.sin(t * 0.5) * 1.5 - 0.5;
 
-    // Squashed elliptical spread (wider horizontally to fit the screen)
+    // Squashed elliptical spread
     const intendedPos = new THREE.Vector3(
       Math.cos(currentAngle) * currentRadius * 1.6, 
       Math.sin(currentAngle) * currentRadius * 0.9, 
@@ -58,14 +52,12 @@ const PathogenPhysics = ({ children, startAngle = 0, speed = 1 }) => {
     const dist = intendedPos.distanceTo(mouseVec);
     const dodgeRadius = 2.0; 
 
-    // If mouse gets close, calculate a vector away from the mouse and apply it
     if (dist < dodgeRadius) {
       const dirAway = intendedPos.clone().sub(mouseVec).normalize();
       const force = (dodgeRadius - dist) * 1.5; 
       intendedPos.add(dirAway.multiplyScalar(force));
     }
 
-    // Smooth, sluggish lerp to the final position
     groupRef.current.position.lerp(intendedPos, delta * 1.5);
   });
 
@@ -74,7 +66,6 @@ const PathogenPhysics = ({ children, startAngle = 0, speed = 1 }) => {
 
 const VirusNode = ({ scale = 1, color = "#059669" }) => {
   const meshRef = useRef();
-  
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     meshRef.current.rotation.x = t * 0.1;
@@ -145,70 +136,6 @@ const SuspendedParticles = () => {
 };
 
 // ==========================================
-// UI COMPONENTS (Isolated State)
-// ==========================================
-
-const LoginOverlay = ({ onAuthorize }) => {
-  const [localName, setLocalName] = useState("");
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (!localName.trim()) return;
-    setIsAuthenticating(true);
-    setTimeout(() => {
-      onAuthorize(localName);
-    }, 1500);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="z-20 w-full max-w-md px-6 pointer-events-auto"
-    >
-      <div className="bg-[#010805]/80 border border-emerald-900/50 backdrop-blur-md shadow-[0_0_50px_rgba(5,150,105,0.2)] p-8">
-        <div className="text-center space-y-4 mb-8">
-          <Biohazard className={`w-16 h-16 mx-auto text-emerald-500 ${isAuthenticating ? 'animate-spin' : 'animate-pulse'}`} />
-          <div>
-            <h1 className="text-2xl font-black tracking-[0.2em] text-emerald-400 uppercase">CLINICAL DASHBOARD</h1>
-            <p className="text-emerald-700 text-xs tracking-widest mt-1">TERMINAL</p>
-          </div>
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-emerald-800 to-transparent" />
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-bold">Authorized Medical Officer</label>
-            <input 
-              type="text" 
-              value={localName}
-              onChange={(e) => setLocalName(e.target.value)}
-              disabled={isAuthenticating}
-              className="w-full bg-[#022c22]/30 border border-emerald-900/60 p-3 text-emerald-300 focus:border-emerald-500 outline-none transition-all placeholder:text-emerald-900/60 uppercase tracking-wider disabled:opacity-50"
-              placeholder="ENTER SURNAME OR ID"
-            />
-          </div>
-          
-          <button 
-            type="submit"
-            disabled={!localName.trim() || isAuthenticating}
-            className="w-full bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-800 text-emerald-300 font-black tracking-[0.2em] h-12 transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-2"
-          >
-            {isAuthenticating ? "SEQUENCING DNA..." : "INITIATE TERMINAL"}
-          </button>
-        </form>
-
-        <div className="flex items-center justify-between text-[10px] text-emerald-800 font-black pt-6 mt-6 border-t border-emerald-950">
-          <span className="flex items-center gap-1"><ShieldAlert size={12}/> ENCRYPTED</span>
-          <span className="flex items-center gap-1"><Skull size={12}/> THREAT LEVEL: SEVERE</span>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// ==========================================
 // MAIN APPLICATION COMPONENT
 // ==========================================
 
@@ -233,6 +160,7 @@ export default function App() {
       <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#010805] font-mono">
         <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,_#064e3b_0%,_#010805_100%)] opacity-80" />
         
+        {/* 3D BACKGROUND */}
         <div className="absolute inset-0 z-10">
           <Canvas camera={{ position: [0, 0, 8] }}>
             <ambientLight intensity={0.3} />
@@ -241,7 +169,6 @@ export default function App() {
             
             <SuspendedParticles />
             
-            {/* The 4 pathogens are now strictly assigned to specific PI angles (Corners) */}
             <PathogenPhysics startAngle={Math.PI * 0.85} speed={0.8}>
               <VirusNode scale={1.2} color="#059669" />
             </PathogenPhysics>
@@ -260,12 +187,17 @@ export default function App() {
           </Canvas>
         </div>
 
-        <LoginOverlay 
-          onAuthorize={(name) => {
-            setPersonnelName(name);
-            setIsLoggedIn(true);
-          }} 
-        />
+        {/* YOUR INTEGRATED TERMINAL COMPONENT */}
+        <div className="z-20 w-full max-w-2xl px-6 pointer-events-none flex justify-center items-center">
+          <div className="pointer-events-auto w-full">
+            <TerminalLogin 
+              onLogin={(name) => {
+                setPersonnelName(name || "SYSTEM_ADMIN");
+                setIsLoggedIn(true);
+              }} 
+            />
+          </div>
+        </div>
         
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(0,18,5,0)_50%,rgba(0,255,100,0.02)_50%)] bg-[length:100%_4px] z-30" />
       </div>
