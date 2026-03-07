@@ -2,10 +2,10 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Sphere, MeshDistortMaterial, Float, Capsule } from "@react-three/drei";
 import * as THREE from "three";
-import { motion } from "framer-motion";
-import { LayoutDashboard, Activity } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Activity, ShieldAlert, Loader2 } from "lucide-react";
 
-// Existing Store & Components
+// Store & Components
 import { useDashboardStore } from "./store/useDashboardStore";
 import BedCapacityChart from "./components/BedCapacityChart";
 import BloodLiquidityTable from "./components/BloodLiquidityTable";
@@ -131,65 +131,141 @@ const SuspendedParticles = () => {
 };
 
 // ==========================================
-// UI COMPONENTS (Isolated State)
+// 1:1 LOVABLE TERMINAL COMPONENT
 // ==========================================
 
-const LoginOverlay = ({ onAuthorize }) => {
-  const [localName, setLocalName] = useState("");
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
+function TerminalLogin({ onLogin }) {
+  const [officer, setOfficer] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!localName.trim()) return;
-    setIsAuthenticating(true);
-    setTimeout(() => {
-      onAuthorize(localName);
-    }, 1500);
+    if (!officer.trim()) return;
+    setLoading(true);
+    setTimeout(() => onLogin(officer.trim()), 2500);
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="z-20 w-full max-w-md px-6 pointer-events-auto"
-    >
-      <div className="bg-[#010805]/80 border border-emerald-900/50 backdrop-blur-md shadow-[0_0_50px_rgba(5,150,105,0.2)] p-8">
-        <div className="text-center space-y-4 mb-8">
-          <div className="flex justify-center">
-            <LayoutDashboard className={`w-16 h-16 text-emerald-500 ${isAuthenticating ? 'animate-pulse' : ''}`} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-[0.2em] text-emerald-400 uppercase">CLINICAL DASHBOARD</h1>
-            <p className="text-emerald-700 text-xs tracking-widest mt-1 uppercase">TERMINAL</p>
-          </div>
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-emerald-800 to-transparent" />
-        </div>
+    <div className="fixed inset-0 z-20 flex items-center justify-center p-4 pointer-events-none">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md pointer-events-auto"
+      >
+        {/* Scanline decoration */}
+        <motion.div
+          className="mb-6 flex items-center justify-center gap-3"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-primary/40" />
+          <span className="font-display text-[10px] tracking-wide-terminal text-muted-foreground uppercase">
+            Secure Access
+          </span>
+          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-primary/40" />
+        </motion.div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-bold">Authorized Medical Officer</label>
-            <input 
-              type="text" 
-              value={localName}
-              onChange={(e) => setLocalName(e.target.value)}
-              disabled={isAuthenticating}
-              className="w-full bg-[#022c22]/30 border border-emerald-900/60 p-3 text-emerald-300 focus:border-emerald-500 outline-none transition-all placeholder:text-emerald-900/60 uppercase tracking-wider disabled:opacity-50"
-              placeholder="ENTER SURNAME OR ID"
-            />
-          </div>
-          
-          <button 
-            type="submit"
-            disabled={!localName.trim() || isAuthenticating}
-            className="w-full bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-800 text-emerald-300 font-black tracking-[0.2em] h-12 transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-2"
+        {/* Main card */}
+        <div className="glass-panel rounded-lg p-8 glow-primary">
+          {/* Icon */}
+          <motion.div
+            className="mb-6 flex justify-center"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           >
-            {isAuthenticating ? "SEQUENCING DNA..." : "INITIATE TERMINAL"}
-          </button>
-        </form>
-      </div>
-    </motion.div>
+            <div className="relative">
+              <ShieldAlert className="h-10 w-10 text-primary" />
+              <div className="absolute inset-0 blur-lg">
+                <ShieldAlert className="h-10 w-10 text-primary opacity-60" />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Title */}
+          <motion.div
+            className="mb-8 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+          >
+            <h1 className="font-display text-sm tracking-terminal text-foreground text-glow mb-2">
+              CLINICAL DASHBOARD
+            </h1>
+            <p className="text-[10px] tracking-wide-terminal text-muted-foreground uppercase">
+              Terminal Authentication Required
+            </p>
+          </motion.div>
+
+          {/* Form */}
+          <motion.form
+            onSubmit={handleSubmit}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
+            className="space-y-5"
+          >
+            <div>
+              <label className="block text-[10px] tracking-terminal text-muted-foreground uppercase mb-2">
+                Authorized Medical Officer
+              </label>
+              <input
+                type="text"
+                value={officer}
+                onChange={(e) => setOfficer(e.target.value)}
+                placeholder="ENTER OFFICER ID"
+                disabled={loading}
+                className="w-full bg-input/50 border border-border rounded px-4 py-3 text-xs font-mono tracking-widest text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all disabled:opacity-50"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !officer.trim()}
+              className="w-full relative overflow-hidden bg-primary/10 border border-primary/40 rounded px-4 py-3 font-display text-xs tracking-terminal text-primary hover:bg-primary/20 hover:border-primary/60 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed glow-primary"
+            >
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <motion.span
+                    key="loading"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    GETTING DASHBOARD READY
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="idle"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    INITIATE TERMINAL
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          </motion.form>
+
+          {/* Footer decoration */}
+          <motion.div
+            className="mt-6 flex items-center justify-center gap-2 text-[9px] tracking-terminal text-muted-foreground/50 uppercase"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 0.5 }}
+          >
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-pulse" />
+            System Online — Awaiting Credentials
+          </motion.div>
+        </div>
+      </motion.div>
+    </div>
   );
-};
+}
 
 // ==========================================
 // MAIN APPLICATION COMPONENT
@@ -241,8 +317,9 @@ export default function App() {
           </Canvas>
         </div>
 
-        <LoginOverlay 
-          onAuthorize={(name) => {
+        {/* 1:1 Lovable Terminal Log in Component Mounted Over Canvas */}
+        <TerminalLogin 
+          onLogin={(name) => {
             setPersonnelName(name);
             setIsLoggedIn(true);
           }} 
