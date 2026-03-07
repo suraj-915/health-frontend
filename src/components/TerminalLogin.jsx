@@ -34,21 +34,6 @@ export default function TerminalLogin({ onLogin }) {
             Secure Access
           </span>
           <div className="h-px flex-1 bg-gradient-to-l from-transparent to-emerald-500/40" />
-        </motion.div>
-
-        {/* Main card */}
-        <div className="bg-[#010805]/80 backdrop-blur-md border border-emerald-900/50 shadow-[0_0_50px_rgba(5,150,105,0.2)] rounded-lg p-8">
-=======
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#14b870]/40" />
-          <span className="font-['Orbitron',_sans-serif] text-[10px] tracking-[0.35em] text-[#628475] uppercase">
-            Secure Access
-          </span>
-          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#14b870]/40" />
-        </motion.div>
-
-        {/* Main card */}
-        <div className="bg-[#050f0a]/60 backdrop-blur-[24px] saturate-[1.2] border border-[#173528] rounded-lg p-8 shadow-[0_0_20px_rgba(20,184,112,0.4),0_0_60px_rgba(20,184,112,0.1)]">
->>>>>>> 16b15b1205f7f6dd43a27b09764c1411085fc5ac
           {/* Icon */}
           <motion.div
             className="mb-6 flex justify-center"
@@ -60,11 +45,6 @@ export default function TerminalLogin({ onLogin }) {
               <ShieldAlert className="h-10 w-10 text-emerald-500" />
               <div className="absolute inset-0 blur-lg">
                 <ShieldAlert className="h-10 w-10 text-emerald-500 opacity-60" />
-=======
-              <ShieldAlert className="h-10 w-10 text-[#14b870]" />
-              <div className="absolute inset-0 blur-lg">
-                <ShieldAlert className="h-10 w-10 text-[#14b870] opacity-60" />
->>>>>>> 16b15b1205f7f6dd43a27b09764c1411085fc5ac
               </div>
             </div>
           </motion.div>
@@ -81,12 +61,6 @@ export default function TerminalLogin({ onLogin }) {
               CLINICAL DASHBOARD
             </h1>
             <p className="text-[10px] tracking-[0.2em] text-emerald-700 uppercase">
-=======
-            <h1 className="font-['Orbitron',_sans-serif] text-sm tracking-[0.25em] text-[#c2e4d4] [text-shadow:0_0_10px_rgba(20,184,112,0.6),0_0_30px_rgba(20,184,112,0.2)] mb-2">
-              CLINICAL DASHBOARD
-            </h1>
-            <p className="text-[10px] tracking-[0.35em] text-[#628475] uppercase">
->>>>>>> 16b15b1205f7f6dd43a27b09764c1411085fc5ac
               Terminal Authentication Required
             </p>
           </motion.div>
