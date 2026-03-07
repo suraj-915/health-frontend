@@ -3,7 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Sphere, MeshDistortMaterial, Float, Capsule } from "@react-three/drei";
 import * as THREE from "three";
 import { motion } from "framer-motion";
-import { Biohazard, Skull, Activity, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, Activity } from "lucide-react";
 
 // Existing Store & Components
 import { useDashboardStore } from "./store/useDashboardStore";
@@ -19,36 +19,25 @@ import EmsDiversionMap from "./components/EmsDiversionMap";
 const PathogenPhysics = ({ children, startAngle = 0, speed = 1 }) => {
   const groupRef = useRef();
   const mouseVec = useMemo(() => new THREE.Vector3(), []);
-  
-  // Give each pathogen a randomized time offset so their breathing/bobbing isn't synced
   const timeOffset = useMemo(() => Math.random() * 100, []);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.getElapsedTime() + timeOffset;
 
-    // 1. Sector-Locked Wandering
-    // Instead of orbiting endlessly, they swing back and forth around their starting angle.
-    // This mathematically prevents them from ever crossing into another pathogen's space.
     const currentAngle = startAngle + Math.sin(t * 0.3 * speed) * 0.35;
-
-    // Radii bounds to keep them visible but away from the center terminal
     const minRadius = 3.5;
     const maxRadius = 4.8;
-    const radiusWobble = (Math.sin(t * 0.4 * speed) + 1) / 2; // 0.0 to 1.0
+    const radiusWobble = (Math.sin(t * 0.4 * speed) + 1) / 2;
     const currentRadius = minRadius + radiusWobble * (maxRadius - minRadius);
-
-    // Subtle Z-depth floating
     const currentZ = Math.sin(t * 0.5) * 1.5 - 0.5;
 
-    // Squashed elliptical spread (wider horizontally to fit the screen)
     const intendedPos = new THREE.Vector3(
       Math.cos(currentAngle) * currentRadius * 1.6, 
       Math.sin(currentAngle) * currentRadius * 0.9, 
       currentZ
     );
 
-    // 2. Mouse Repulsion Logic
     mouseVec.set(
       (state.pointer.x * state.viewport.width) / 2,
       (state.pointer.y * state.viewport.height) / 2,
@@ -58,14 +47,12 @@ const PathogenPhysics = ({ children, startAngle = 0, speed = 1 }) => {
     const dist = intendedPos.distanceTo(mouseVec);
     const dodgeRadius = 2.0; 
 
-    // If mouse gets close, calculate a vector away from the mouse and apply it
     if (dist < dodgeRadius) {
       const dirAway = intendedPos.clone().sub(mouseVec).normalize();
       const force = (dodgeRadius - dist) * 1.5; 
       intendedPos.add(dirAway.multiplyScalar(force));
     }
 
-    // Smooth, sluggish lerp to the final position
     groupRef.current.position.lerp(intendedPos, delta * 1.5);
   });
 
@@ -74,7 +61,6 @@ const PathogenPhysics = ({ children, startAngle = 0, speed = 1 }) => {
 
 const VirusNode = ({ scale = 1, color = "#059669" }) => {
   const meshRef = useRef();
-  
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     meshRef.current.rotation.x = t * 0.1;
@@ -169,10 +155,12 @@ const LoginOverlay = ({ onAuthorize }) => {
     >
       <div className="bg-[#010805]/80 border border-emerald-900/50 backdrop-blur-md shadow-[0_0_50px_rgba(5,150,105,0.2)] p-8">
         <div className="text-center space-y-4 mb-8">
-          <Biohazard className={`w-16 h-16 mx-auto text-emerald-500 ${isAuthenticating ? 'animate-spin' : 'animate-pulse'}`} />
+          <div className="flex justify-center">
+            <LayoutDashboard className={`w-16 h-16 text-emerald-500 ${isAuthenticating ? 'animate-pulse' : ''}`} />
+          </div>
           <div>
             <h1 className="text-2xl font-black tracking-[0.2em] text-emerald-400 uppercase">CLINICAL DASHBOARD</h1>
-            <p className="text-emerald-700 text-xs tracking-widest mt-1">TERMINAL</p>
+            <p className="text-emerald-700 text-xs tracking-widest mt-1 uppercase">TERMINAL</p>
           </div>
           <div className="h-px w-full bg-gradient-to-r from-transparent via-emerald-800 to-transparent" />
         </div>
@@ -198,11 +186,6 @@ const LoginOverlay = ({ onAuthorize }) => {
             {isAuthenticating ? "SEQUENCING DNA..." : "INITIATE TERMINAL"}
           </button>
         </form>
-
-        <div className="flex items-center justify-between text-[10px] text-emerald-800 font-black pt-6 mt-6 border-t border-emerald-950">
-          <span className="flex items-center gap-1"><ShieldAlert size={12}/> ENCRYPTED</span>
-          <span className="flex items-center gap-1"><Skull size={12}/> THREAT LEVEL: SEVERE</span>
-        </div>
       </div>
     </motion.div>
   );
@@ -227,7 +210,6 @@ export default function App() {
     return () => { clearInterval(dataInterval); clearInterval(animInterval); };
   }, [isLoggedIn, progressSimulation, moveAmbulances]);
 
-  // --- VIEW: LOGIN TERMINAL ---
   if (!isLoggedIn) {
     return (
       <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#010805] font-mono">
@@ -241,7 +223,6 @@ export default function App() {
             
             <SuspendedParticles />
             
-            {/* The 4 pathogens are now strictly assigned to specific PI angles (Corners) */}
             <PathogenPhysics startAngle={Math.PI * 0.85} speed={0.8}>
               <VirusNode scale={1.2} color="#059669" />
             </PathogenPhysics>
@@ -272,7 +253,6 @@ export default function App() {
     );
   }
 
-  // --- VIEW: MAIN DASHBOARD ---
   return (
     <div className="min-h-screen bg-[#010805] text-emerald-50 p-6 font-mono selection:bg-emerald-900 selection:text-white">
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_right,_#022c22_0%,_#010805_100%)] z-0" />
