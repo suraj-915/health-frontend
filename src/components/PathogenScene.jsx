@@ -1,9 +1,87 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 
-function VirusNode({ position, scale = 1 }) {
+// ==========================================
+// PHYSICS WRAPPER (Movement & Collisions)
+// ==========================================
+const PathogenPhysics = ({ children, startAngle = 0, radius = 2.5, speed = 0.5, allNodesRef }) => {
+  const groupRef = useRef();
+  const mouseVec = useMemo(() => new THREE.Vector3(), []);
+  const timeOffset = useMemo(() => Math.random() * 100, []);
+
+  // Register this node in the shared array so others can detect it
+  useEffect(() => {
+    if (groupRef.current && allNodesRef) {
+      allNodesRef.current.push(groupRef.current);
+    }
+    return () => {
+      if (groupRef.current && allNodesRef) {
+        allNodesRef.current = allNodesRef.current.filter(n => n !== groupRef.current);
+      }
+    };
+  }, [allNodesRef]);
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    
+    // Cut the overall speed in half to make them drift slower
+    const t = (state.clock.getElapsedTime() + timeOffset) * (speed * 0.5);
+
+    // 1. Base orbit (slower rotation multiplier)
+    const currentAngle = startAngle + t * 0.1; 
+    const currentRadius = radius + Math.sin(t * 0.4) * 0.5;
+    
+    const intendedPos = new THREE.Vector3(
+      Math.cos(currentAngle) * currentRadius * 1.3, 
+      Math.sin(currentAngle) * currentRadius * 0.8, 
+      Math.sin(t * 0.3) * 1.0 - 0.5
+    );
+
+    // 2. Mouse evasion (Gently nudge instead of run)
+    mouseVec.set(
+      (state.pointer.x * state.viewport.width) / 2,
+      (state.pointer.y * state.viewport.height) / 2,
+      intendedPos.z
+    );
+
+    const mouseDist = intendedPos.distanceTo(mouseVec);
+    const dodgeRadius = 2.8; // Reduced radius so they let the mouse get closer
+
+    if (mouseDist < dodgeRadius) {
+      const dirAway = intendedPos.clone().sub(mouseVec).normalize();
+      // Significantly reduced the push strength (from 1.8 down to 0.5)
+      const force = (dodgeRadius - mouseDist) * 0.5; 
+      intendedPos.add(dirAway.multiplyScalar(force));
+    }
+
+    // 3. Pathogen collision avoidance (repulsion)
+    if (allNodesRef) {
+      const separationRadius = 2.4; 
+      allNodesRef.current.forEach((otherNode) => {
+        if (otherNode !== groupRef.current) {
+           const dist = intendedPos.distanceTo(otherNode.position);
+           if (dist < separationRadius && dist > 0.01) {
+             const dirAway = intendedPos.clone().sub(otherNode.position).normalize();
+             const force = (separationRadius - dist) * 0.6;
+             intendedPos.add(dirAway.multiplyScalar(force));
+           }
+        }
+      });
+    }
+
+    // 4. Smoothly interpolate (lowered from 3.0 to 1.2 for a lazier, heavy-fluid feel)
+    groupRef.current.position.lerp(intendedPos, delta * 1.2);
+  });
+
+  return <group ref={groupRef}>{children}</group>;
+};
+
+// ==========================================
+// 3D MODELS
+// ==========================================
+function VirusNode({ scale = 1 }) {
   const groupRef = useRef(null);
   const timeOffset = useMemo(() => Math.random() * Math.PI * 2, []);
 
@@ -33,8 +111,7 @@ function VirusNode({ position, scale = 1 }) {
 
   return (
     <Float speed={0.8} rotationIntensity={0.2} floatIntensity={0.5}>
-      <group ref={groupRef} position={position}>
-        {/* Core body */}
+      <group ref={groupRef}>
         <mesh>
           <sphereGeometry args={[0.5 * scale, 64, 64]} />
           <meshPhysicalMaterial
@@ -48,7 +125,6 @@ function VirusNode({ position, scale = 1 }) {
             envMapIntensity={0.5}
           />
         </mesh>
-        {/* Spikes */}
         {spikePositions.map((pos, i) => {
           const dir = new THREE.Vector3(...pos).normalize();
           const quat = new THREE.Quaternion().setFromUnitVectors(
@@ -59,20 +135,11 @@ function VirusNode({ position, scale = 1 }) {
             <group key={i} position={pos} quaternion={quat}>
               <mesh>
                 <cylinderGeometry args={[0.008 * scale, 0.025 * scale, 0.18 * scale, 6]} />
-                <meshPhysicalMaterial
-                  color="#0d5e3f"
-                  roughness={0.4}
-                  metalness={0.05}
-                />
+                <meshPhysicalMaterial color="#0d5e3f" roughness={0.4} metalness={0.05} />
               </mesh>
               <mesh position={[0, 0.1 * scale, 0]}>
                 <sphereGeometry args={[0.03 * scale, 8, 8]} />
-                <meshPhysicalMaterial
-                  color="#15a06a"
-                  roughness={0.3}
-                  emissive="#0a5e3a"
-                  emissiveIntensity={0.3}
-                />
+                <meshPhysicalMaterial color="#15a06a" roughness={0.3} emissive="#0a5e3a" emissiveIntensity={0.3} />
               </mesh>
             </group>
           );
@@ -82,7 +149,7 @@ function VirusNode({ position, scale = 1 }) {
   );
 }
 
-function BacteriaNode({ position, scale = 1 }) {
+function BacteriaNode({ scale = 1 }) {
   const groupRef = useRef(null);
   const timeOffset = useMemo(() => Math.random() * Math.PI * 2, []);
 
@@ -115,8 +182,7 @@ function BacteriaNode({ position, scale = 1 }) {
 
   return (
     <Float speed={0.6} rotationIntensity={0.3} floatIntensity={0.4}>
-      <group ref={groupRef} position={position}>
-        {/* Capsule body */}
+      <group ref={groupRef}>
         <mesh rotation={[0, 0, Math.PI / 2]}>
           <capsuleGeometry args={[0.2 * scale, 0.6 * scale, 32, 64]} />
           <meshPhysicalMaterial
@@ -129,16 +195,10 @@ function BacteriaNode({ position, scale = 1 }) {
             clearcoatRoughness={0.15}
           />
         </mesh>
-        {/* Flagella */}
         {flagella.map((curve, i) => (
           <mesh key={i}>
             <tubeGeometry args={[curve, 30, 0.008 * scale, 5, false]} />
-            <meshPhysicalMaterial
-              color="#0d5e3f"
-              roughness={0.5}
-              transparent
-              opacity={0.7}
-            />
+            <meshPhysicalMaterial color="#0d5e3f" roughness={0.5} transparent opacity={0.7} />
           </mesh>
         ))}
       </group>
@@ -173,13 +233,7 @@ function Particles() {
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
         <bufferAttribute attach="attributes-size" args={[sizes, 1]} />
       </bufferGeometry>
-      <pointsMaterial
-        size={0.04}
-        color="#1a7a52"
-        transparent
-        opacity={0.4}
-        sizeAttenuation
-      />
+      <pointsMaterial size={0.04} color="#1a7a52" transparent opacity={0.4} sizeAttenuation />
     </points>
   );
 }
@@ -198,7 +252,12 @@ function MouseLight() {
   return <pointLight ref={lightRef} intensity={2} color="#15a06a" distance={10} />;
 }
 
+// ==========================================
+// MAIN SCENE
+// ==========================================
 export default function PathogenScene() {
+  const allNodesRef = useRef([]);
+
   return (
     <div className="absolute inset-0 z-0 bg-[#010805]">
       <Canvas
@@ -215,15 +274,30 @@ export default function PathogenScene() {
         <MouseLight />
 
         {/* Viruses */}
-        <VirusNode position={[-3.5, 1.5, -2]} scale={1.2} />
-        <VirusNode position={[3, -1, -3]} scale={0.9} />
-        <VirusNode position={[1, 2.5, -4]} scale={0.7} />
-        <VirusNode position={[-1.5, -2.5, -1]} scale={1.0} />
+        <PathogenPhysics startAngle={0} radius={2.8} speed={0.4} allNodesRef={allNodesRef}>
+          <VirusNode scale={1.2} />
+        </PathogenPhysics>
+        
+        <PathogenPhysics startAngle={Math.PI * 0.7} radius={2.5} speed={0.5} allNodesRef={allNodesRef}>
+          <VirusNode scale={0.9} />
+        </PathogenPhysics>
+        
+        <PathogenPhysics startAngle={Math.PI * 1.3} radius={2.9} speed={0.35} allNodesRef={allNodesRef}>
+          <VirusNode scale={1.0} />
+        </PathogenPhysics>
 
         {/* Bacteria */}
-        <BacteriaNode position={[2.5, 1.5, -1.5]} scale={1.1} />
-        <BacteriaNode position={[-2, -1, -3.5]} scale={0.8} />
-        <BacteriaNode position={[0, -3, -2]} scale={0.9} />
+        <PathogenPhysics startAngle={Math.PI * 0.35} radius={2.6} speed={0.45} allNodesRef={allNodesRef}>
+          <BacteriaNode scale={1.1} />
+        </PathogenPhysics>
+        
+        <PathogenPhysics startAngle={Math.PI * 1.0} radius={2.4} speed={0.3} allNodesRef={allNodesRef}>
+          <BacteriaNode scale={0.8} />
+        </PathogenPhysics>
+        
+        <PathogenPhysics startAngle={Math.PI * 1.7} radius={3.1} speed={0.55} allNodesRef={allNodesRef}>
+          <BacteriaNode scale={0.9} />
+        </PathogenPhysics>
 
         <Particles />
       </Canvas>
