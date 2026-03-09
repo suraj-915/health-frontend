@@ -4,13 +4,15 @@ import { ShieldAlert, Loader2 } from 'lucide-react';
 
 export default function TerminalLogin({ onLogin }) {
   const [officer, setOfficer] = useState('');
+  const [role, setRole] = useState('ADMIN'); // Default role state added
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!officer.trim()) return;
     setLoading(true);
-    setTimeout(() => onLogin(officer.trim()), 2500);
+    // Pass both the officer name and their selected role back to App.jsx
+    setTimeout(() => onLogin(officer.trim(), role), 2500);
   };
 
   return (
@@ -86,6 +88,23 @@ export default function TerminalLogin({ onLogin }) {
                 disabled={loading}
                 className="w-full bg-[#152820]/50 border border-[#173528] rounded px-4 py-3 text-xs font-['JetBrains_Mono',_monospace] tracking-widest text-[#c2e4d4] placeholder:text-[#628475]/40 focus:outline-none focus:border-[#14b870] focus:ring-1 focus:ring-[#14b870]/30 transition-all disabled:opacity-50"
               />
+            </div>
+
+            {/* Clearance Level Dropdown */}
+            <div>
+              <label className="block text-[10px] tracking-[0.25em] text-[#628475] uppercase mb-2">
+                Clearance Level
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                disabled={loading}
+                className="w-full bg-[#152820]/50 border border-[#173528] rounded px-4 py-3 text-xs font-['JetBrains_Mono',_monospace] tracking-widest text-[#c2e4d4] focus:outline-none focus:border-[#14b870] focus:ring-1 focus:ring-[#14b870]/30 transition-all disabled:opacity-50 appearance-none cursor-pointer"
+              >
+                <option value="ADMIN">LEVEL 01: SYSTEM ADMIN</option>
+                <option value="MEDICAL_OFFICER">LEVEL 02: MEDICAL OFFICER</option>
+                <option value="LOGISTICS">LEVEL 03: LOGISTICS COORD</option>
+              </select>
             </div>
 
             <button
