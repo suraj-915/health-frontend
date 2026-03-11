@@ -51,7 +51,6 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#010805] font-mono">
-        
         {/* Render the advanced 3D pathogen scene behind the login */}
         <PathogenScene />
 
@@ -74,11 +73,11 @@ export default function App() {
   const allowedMenus = MENU_CONFIG.filter(menu => menu.roles.includes(userRole));
 
   return (
-    <div className="min-h-screen bg-[#010805] text-emerald-50 p-6 font-mono selection:bg-emerald-900 selection:text-white flex flex-col">
+    <div className="h-screen max-h-screen bg-[#010805] text-emerald-50 p-6 font-mono selection:bg-emerald-900 selection:text-white flex flex-col overflow-hidden">
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_right,_#022c22_0%,_#010805_100%)] z-0" />
 
       {/* HEADER BAR */}
-      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-emerald-900/30 pb-6">
+      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-emerald-900/30 pb-4 shrink-0">
         <div>
           <h1 className="text-3xl font-black tracking-tighter text-emerald-500 uppercase flex items-center gap-3">
             <Activity className="w-8 h-8 text-emerald-500 animate-pulse" />
@@ -110,14 +109,20 @@ export default function App() {
       </div>
       
       {/* NAVIGATION TABS (ROLE FILTERED) */}
-      <div className="relative z-10 flex flex-wrap gap-2 mb-6 border-b border-emerald-900/20 pb-4">
+      <div className="relative z-10 flex flex-wrap gap-2 mb-4 border-b border-emerald-900/20 pb-4 shrink-0">
         {allowedMenus.map((menu) => {
           const Icon = menu.icon;
           const isActive = activeTab === menu.id;
           return (
             <button
               key={menu.id}
-              onClick={() => setActiveTab(menu.id)}
+              onClick={() => {
+                setActiveTab(menu.id);
+                // NEW: Clear the hospital filter when manually clicking the Beds tab
+                if (menu.id === 'beds') {
+                  useDashboardStore.getState().setSelectedHospital(null);
+                }
+              }}
               className={`flex items-center gap-2 px-4 py-3 text-xs font-bold tracking-[0.15em] transition-all border ${
                 isActive 
                   ? 'bg-emerald-900/40 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
@@ -131,9 +136,9 @@ export default function App() {
         })}
       </div>
 
-      {/* DYNAMIC CONTENT AREA */}
-      <div className="relative z-10 flex-1 w-full">
-        {activeTab === 'map' && <EmsDiversionMap />}
+      {/* DYNAMIC CONTENT AREA - Adjusted to fill exact remaining screen height */}
+      <div className="relative z-10 flex-1 w-full overflow-hidden flex flex-col min-h-0">
+        {activeTab === 'map' && <EmsDiversionMap onHospitalSelect={() => setActiveTab('beds')} />}
         {activeTab === 'beds' && <BedCapacityChart />}
         {activeTab === 'blood' && <BloodLiquidityTable />}
         {activeTab === 'amc' && <AmcTracker />}

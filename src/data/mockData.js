@@ -34,6 +34,28 @@ export const initialDashboardData = {
         hdu: { total: 20, occupied: 10 },
         general: { total: 150, occupied: 80 }
       }
+    },
+    {
+      id: "HOSP-BLR-04", 
+      name: "KC General Hospital", 
+      coordinates: [12.9934, 77.5704], 
+      oxygenPressure: 78, 
+      beds: { 
+        icu: { total: 20, occupied: 18 }, 
+        hdu: { total: 30, occupied: 20 }, 
+        general: { total: 100, occupied: 90 } 
+      }
+    },
+    {
+      id: "HOSP-BLR-05", 
+      name: "Jayanagar General", 
+      coordinates: [12.9288, 77.5891], 
+      oxygenPressure: 82, 
+      beds: { 
+        icu: { total: 25, occupied: 22 }, 
+        hdu: { total: 35, occupied: 30 }, 
+        general: { total: 120, occupied: 110 } 
+      }
     }
   ],
   
@@ -51,7 +73,40 @@ export const initialDashboardData = {
   ],
 
   ambulances: [
-    { id: "AMB-108-A", coordinates: [12.9700, 77.5800], destination: "Bowring & Lady Curzon", etaMins: 12, type: "ALS", status: "En Route" },
-    { id: "AMB-108-B", coordinates: [12.9450, 77.5850], destination: "NIMHANS", etaMins: 5, type: "BLS", status: "En Route" }
+    { 
+      id: "AMB-108-A", 
+      coordinates: [12.9700, 77.5800], 
+      destination: "Bowring & Lady Curzon", 
+      etaMins: 12, 
+      type: "ALS", 
+      status: "En Route",
+      pathIndex: 0,
+      // A closed loop using right-angles to simulate city blocks
+      fullPath: [
+        [12.9700, 77.5800], 
+        [12.9700, 77.5950], // Drive East
+        [12.9814, 77.5950], // Turn North
+        [12.9814, 77.6033], // Turn East into Bowring
+        [12.9814, 77.5950], // Reverse course (Drive West)
+        [12.9700, 77.5950], // Turn South
+        [12.9700, 77.5800]  // Arrive back at start, ready to loop
+      ] 
+    },
+    { 
+      id: "AMB-108-B", 
+      coordinates: [12.9450, 77.5850], 
+      destination: "NIMHANS", 
+      etaMins: 5, 
+      type: "BLS", 
+      status: "En Route",
+      pathIndex: 0,
+      fullPath: [
+        [12.9450, 77.5850],
+        [12.9385, 77.5850], // Drive South
+        [12.9385, 77.5956], // Turn East into NIMHANS
+        [12.9385, 77.5850], // Reverse course
+        [12.9450, 77.5850]  // Arrive back at start
+      ]
+    }
   ]
 };
